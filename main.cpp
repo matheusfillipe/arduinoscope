@@ -1,16 +1,39 @@
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
+
+#include <QtWidgets/QApplication>
+#include <QtQml/QQmlContext>
+#include <QtQuick/QQuickView>
+#include <QtQml/QQmlEngine>
+#include <QtCore/QDir>
+
+#include "serialport.h"
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+     QApplication app(argc, argv);
 
-    QGuiApplication app(argc, argv);
+     QQuickView viewer;
 
-    QQmlApplicationEngine engine;
-    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-    if (engine.rootObjects().isEmpty())
-        return -1;
+     // The following are needed to make examples run without having to install the module
+     // in desktop environments.
+ #ifdef Q_OS_WIN
+     QString extraImportPath(QStringLiteral("%1/../../../../%2"));
+ #else
+     QString extraImportPath(QStringLiteral("%1/../../../%2"));
+ #endif
+     viewer.engine()->addImportPath(extraImportPath.arg(QGuiApplication::applicationDirPath(),
+                                       QString::fromLatin1("qml")));
+     QObject::connect(viewer.engine(), &QQmlEngine::quit, &viewer, &QWindow::close);
 
-    return app.exec();
+     viewer.setTitle(QStringLiteral("ArduoScope"));
+
+    // DataSource dataSource(&viewer);
+    // viewer.rootContext()->setContextProperty("dataSource", &dataSource);
+
+     qmlRegisterType<serialPort>("io.qt.arduinoscope.serialport", 1,0,"SerialPort");
+     viewer.setSource(QUrl("qrc:/main.qml"));
+     viewer.setResizeMode(QQuickView::SizeRootObjectToView);
+     viewer.setColor(QColor("#404040"));
+//     viewer.show();
+
+     return app.exec();
 }
